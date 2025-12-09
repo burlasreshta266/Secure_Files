@@ -12,6 +12,26 @@
 
     <!-- form section -->
      <div class="col-12 col-lg-7 min-vh-100">
+
+    <!-- Messages -->
+   {% if messages %}
+        <div class="container mt-3">
+        {% for message in messages %}
+            <div class="alert 
+                {% if message.tags == 'error' %}alert-danger
+                {% else %}alert-{{ message.tags }}
+                {% endif %}
+                alert-dismissible fade show" role="alert">
+
+                {{ message }}
+
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+        </div>
+    {% endif %}
+
+
         <div class="p-5">
             <h2 class="pb-3 underline">Login</h2>
             <form action="{% url 'login' %}" method="post" class="mt-5">
