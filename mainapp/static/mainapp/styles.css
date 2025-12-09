@@ -1,0 +1,47 @@
+/* Background Colors */
+* {
+    background-color: #fafafa; 
+    color: #180018;
+    box-sizing: border-box;
+}
+
+.gradient-bg {
+    background-image: linear-gradient(to bottom, #52357b, #6b54ac, #5459ac);
+    color: #faf6ff;
+}
+.gradient-bg h1 {
+    background-color: transparent;
+}
+
+
+/* Utility */
+.underline {
+    border-bottom: 2px solid #5459ac;
+}
+
+
+/* Buttons */
+.btn-main {
+    background-color: #5459ac;
+    color: #faf6ff;
+    border-radius: 10px;
+    font-weight: 600;
+}
+.btn-main:hover,
+.btn-main:focus,
+.btn-main:active,
+.btn-main.clicked {
+    background-color: #454892;
+    color: #ffffff;
+}
+
+
+/* login and enroll pages */
+.logo-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 30vh;
+    flex-direction: column;
+    padding: 80px 40px;
+}
