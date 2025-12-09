@@ -2,6 +2,10 @@ from django.shortcuts import render, redirect
 from .models import User
 from django.contrib import messages
 import random
+from django.contrib.auth import login as auth_login
+from django.contrib.auth import logout as auth_logout
+from django.contrib.auth.decorators import login_required
+
 
 # Welcome page view
 def index(request):
@@ -22,11 +26,12 @@ def enroll(request):
             messages.error(request, 'Username already exists. Please choose a different one.')
             return render(request, 'mainapp/enroll.html')
         
-        helper_data = "fake_helper"+random.getrandbits(16)
-        public_key = "fake_public"+random.getrandbits(16)
+        helper_data = "fake_helper"+str(random.getrandbits(16))
+        public_key = "fake_public"+str(random.getrandbits(16))
 
-        user = User.objects.create(
+        User.objects.create_user(
             username=username, 
+            password=None,
             biometric_data=biometric,
             helper_data=helper_data,
             public_key=public_key )
@@ -56,10 +61,8 @@ def login(request):
             messages.error(request, 'Biometric authentication failed.')
             return render(request, 'mainapp/login.html')
         
-        token = "fake_token_"+random.getrandbits(16)
-        request.session['user_id'] = user.id
-        request.session['token'] = token
-
+        auth_login(request, user)
+        
         return redirect('home')
     
     else:
@@ -67,20 +70,25 @@ def login(request):
 
 
 # User logout
+@login_required
 def logout(request):
-    pass
+    auth_logout(request)
+    return redirect('login')
 
 
 # Home page view
+@login_required
 def home(request):
     pass
 
 
 # Files management view
+@login_required
 def files(request):     
     pass
 
 
 # Folders management view
+@login_required
 def folders(request):
     pass
