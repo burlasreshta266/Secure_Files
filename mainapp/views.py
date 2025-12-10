@@ -79,7 +79,7 @@ def logout(request):
 # Home page view
 @login_required
 def home(request):
-    pass
+    return render(request, 'mainapp/home.html')
 
 
 # Files management view

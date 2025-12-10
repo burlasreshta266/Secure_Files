@@ -6,8 +6,8 @@
 <div class="row">
 
     <!-- logo section -->
-    <div class="col-12 col-lg-5 gradient-bg logo-section">
-        <h1>Welcome Back!</h1>
+    <div class="col-12 col-lg-5 side-section gradient-bg d-flex flex-column justify-content-center align-items-center">
+        <h1 class="logo-text">Welcome Back!</h1>
     </div>
 
     <!-- form section -->
@@ -44,9 +44,16 @@
                     <label for="biometric">Biometric</label>
                     <input type="text" class="form-control mt-2" id="biometric" name="biometric">
                 </div>
-                <button type="submit" class="btn btn-main w-100 mb-3">Login</button>
+                <button type="submit" class="btn btn-main w-100">Login</button>
             </form>
         </div>
+
+        <div class="text-center mb-3">
+            <div class="d-inline-block">
+                <span>New here?</span>
+                <a href="{% url 'enroll' %}" class="link-text">Create an account</a>
+        </div>
+     </div>
      </div>
 </div>
 </main>

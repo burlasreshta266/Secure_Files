@@ -9,14 +9,30 @@
     background-image: linear-gradient(to bottom, #52357b, #6b54ac, #5459ac);
     color: #faf6ff;
 }
-.gradient-bg h1 {
+.gradient-bg h1, .gradient-bg h2, .gradient-bg h3, .gradient-bg h4, .gradient-bg h5, .gradient-bg h6, .gradient-bg p, .gradient-bg a, .gradient-bg div, .gradient-bg span, .gradient-bg i, .gradient-bg nav, .gradient-bg section, .gradient-bg ul, .gradient-bg li, .gradient-bg small{
     background-color: transparent;
+    color: #ffffff;
 }
 
 
 /* Utility */
 .underline {
     border-bottom: 2px solid #5459ac;
+}
+.grey-text {
+    color: #dfcef6 !important;
+}
+
+.link-text {
+    color: #638db3 !important;
+    transition: text-decoration 0.2s ease;
+    text-decoration: none;
+}
+.link-text:hover {
+    text-decoration: underline;
+}
+.side-section {
+    min-height: 30vh;
 }
 
 
@@ -26,22 +42,165 @@
     color: #faf6ff;
     border-radius: 10px;
     font-weight: 600;
+    transition: all 0.3s ease;
 }
 .btn-main:hover,
 .btn-main:focus,
 .btn-main:active,
 .btn-main.clicked {
-    background-color: #454892;
+    background-color: #5459ac;
     color: #ffffff;
+    box-shadow: 0px 0px 8px 2px #45489297;
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background-color: #b2d8ce;
+    color: #180018;
+    border-radius: 10px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+.btn-secondary:hover,
+.btn-secondary:focus,
+.btn-secondary:active,
+.btn-secondary.clicked {
+    color: #180018;
+    box-shadow: 0px 0px 8px 2px #97c3b797;
+    transform: translateY(-2px);
 }
 
 
-/* login and enroll pages */
-.logo-section {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 30vh;
-    flex-direction: column;
-    padding: 80px 40px;
+/* Home Page */
+:root {
+    --sidebar-width: 280px;
+    --sidebar-width-collapsed: 80px;
+}
+
+body {
+    overflow-x: hidden;
+}
+
+.sidebar {
+    width: var(--sidebar-width);
+    height: 100vh;
+    transition: all 0.3s ease;
+    color: #ffffff;
+}
+
+.sidebar.collapsed {
+    width: var(--sidebar-width-collapsed);
+}
+
+.sidebar-link {
+    transition: all 0.2s ease;
+    border-radius: 8px;
+    margin: 4px 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    padding: 7px;
+    text-decoration: none;
+}
+
+.sidebar-link:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateX(5px);
+}
+
+.sidebar-link.active {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.logo-text {
+    color: #cdf0e6 !important;
+    background-color: transparent;
+    transition: opacity 0.3s ease;
+}
+
+.notification-badge {
+    background: #ff6b6b;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+}
+
+.profile-section {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.main-content {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    padding: 20px;
+    transition: all 0.3s ease;
+}
+
+.collapsed~.main-content {
+    margin-left: var(--sidebar-width-collapsed);
+}
+
+.toggle-btn {
+    position: absolute;
+    right: -15px;
+    top: 20px;
+    background: white;
+    color: #52357b !important;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    border: none;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.collapsed .toggle-btn {
+    transform: rotate(180deg);
+}
+
+.collapsed .hide-on-collapse {
+    opacity: 0;
+    visibility: hidden;
+}
+
+.collapsed .logo-text {
+    opacity: 0;
+}
+
+.collapsed .profile-info {
+    opacity: 0;
+}
+
+.collapsed .sidebar-link {
+    text-align: center;
+    padding: 1rem !important;
+    margin: 4px 8px;
+}
+
+.collapsed .sidebar-link i {
+    margin: 0 !important;
+}
+
+.profile-info {
+    transition: opacity 0.2s ease;
+    
+}
+
+
+/* Welcome Page */
+.hero-section {
+    background-color: transparent;
+    height: 100vh;
+    color: white;
+}
+.hero-section h1 {
+    font-weight: 600;
+}
+.hero-section .btn {
+    border-radius: 8px;
+    font-weight: 600;
+    background-color: #b2d8ce;
 }
