@@ -57,42 +57,15 @@
      </div>
 </div>
 
-<script>
-    document.addEventListener("DOMContentLoaded", () => {
-
-        // send timestamps of keystrokes to backend
-        const time_input = document.getElementById("timestamps");
-        const bio_input = document.getElementById("biometric");
-        const form = document.getElementById('form');
-        const  timestamps = [];
-        const active = {};
-        bio_input.addEventListener('keydown', (event) => {
-            if(/^[a-zA-Z0-9]$/.test(event.key)){
-                const k = event.key.toLowerCase();
-                if(active[k]) return;
-                active[k] = {
-                    'key' : k,
-                    'dt' : Date.now()
-                };
-            }
-        })
-        bio_input.addEventListener('keyup', (event) => {
-            if(/^[a-zA-Z0-9]$/.test(event.key)){
-                const k = event.key.toLowerCase();
-                if(active[k]){
-                    active[k].ut = Date.now();
-                    timestamps.push(active[k]);
-                    delete active[k];
-                }
-            }
-            
-        })
-        form.addEventListener('submit', () => {
-            time_input.value = JSON.stringify(timestamps);
-        })
-        
-    })
+<script type="module">
+    import {captureKeystrokes} from "{% static 'mainapp/keystrokes.js' %}"
+    captureKeystrokes(
+        document.getElementById("timestamps"),
+        document.getElementById("biometric"),
+        document.getElementById("form")
+    );
 </script>
+
 </div></main>
 
 {% endblock %}
