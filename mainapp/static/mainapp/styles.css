@@ -1,66 +1,112 @@
-/* Background Colors */
+/* =========================================
+   1. ROOT VARIABLES
+   ========================================= */
+:root {
+    /* Colors */
+    --primary-color: #52357b;
+    --secondary-color: #b2d8ce;
+    --accent-color: #5459ac;
+    --background-color: #fafafa;
+    --text-color: #180018;
+    
+    /* Greys */
+    --light-grey: #d4e4e0;
+    --dark-grey: #546863;
+    
+    /* Gradients */
+    --gradient-start: #52357b;
+    --gradient-middle: #6b54ac;
+    --gradient-end: #5459ac;
+    
+    /* Dimensions & Spacing */
+    --radius: 10px;
+    --sidebar-width: 280px;
+    --sidebar-width-collapsed: 80px;
+}
+
+/* =========================================
+   2. BASE STYLES & RESETS
+   ========================================= */
 * {
     background-color: #fafafa; 
     color: #180018;
     box-sizing: border-box;
 }
 
-.gradient-bg {
-    background-image: linear-gradient(to bottom, #52357b, #6b54ac, #5459ac);
-    color: #faf6ff;
+body {
+    overflow-x: hidden;
 }
-.gradient-bg h1, .gradient-bg h2, .gradient-bg h3, .gradient-bg h4, .gradient-bg h5, .gradient-bg h6, .gradient-bg p, .gradient-bg a, .gradient-bg div, .gradient-bg span, .gradient-bg i, .gradient-bg nav, .gradient-bg section, .gradient-bg ul, .gradient-bg li, .gradient-bg small{
+
+a {
+    color: var(--dark-grey);
+    transition: text-decoration 0.2s ease;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* =========================================
+   3. UTILITIES & TYPOGRAPHY
+   ========================================= */
+.underline {
+    border-bottom: 2px solid var(--accent-color);
+}
+
+.grey-text {
+    color: var(--light-grey);
+}
+
+
+/* Gradient Background Utility */
+.gradient-bg {
+    background-image: linear-gradient(to bottom, 
+        var(--gradient-start), 
+        var(--gradient-middle), 
+        var(--gradient-end)
+    );
+}
+.gradient-bg h1, .gradient-bg h2, .gradient-bg h3, 
+.gradient-bg h4, .gradient-bg h5, .gradient-bg h6, 
+.gradient-bg p, .gradient-bg a, .gradient-bg div, 
+.gradient-bg span, .gradient-bg i, .gradient-bg nav, 
+.gradient-bg section, .gradient-bg ul, .gradient-bg li, 
+.gradient-bg small {
     background-color: transparent;
     color: #ffffff;
 }
 
-
-/* Utility */
-.underline {
-    border-bottom: 2px solid #5459ac;
-}
-.grey-text {
-    color: #dfcef6 !important;
-}
-
-.link-text {
-    color: #638db3 !important;
-    transition: text-decoration 0.2s ease;
-    text-decoration: none;
-}
-.link-text:hover {
-    text-decoration: underline;
-}
-.side-section {
-    min-height: 30vh;
-}
-
-
-/* Buttons */
+/* =========================================
+   4. COMPONENTS
+   ========================================= */
+/* --- Buttons --- */
 .btn-main {
-    background-color: #5459ac;
-    color: #faf6ff;
-    border-radius: 10px;
+    background-color: var(--accent-color);
+    color: var(--background-color);
+    border-radius: var(--radius);
     font-weight: 600;
     transition: all 0.3s ease;
 }
+
 .btn-main:hover,
 .btn-main:focus,
 .btn-main:active,
 .btn-main.clicked {
-    background-color: #5459ac;
-    color: #ffffff;
+    background-color: var(--accent-color);
+    color: white;
     box-shadow: 0px 0px 8px 2px #45489297;
     transform: translateY(-2px);
 }
 
 .btn-secondary {
-    background-color: #b2d8ce;
-    color: #180018;
-    border-radius: 10px;
+    background-color: var(--secondary-color);
+    color: var(--text-color);
+    border-radius: var(--radius);
     font-weight: 600;
     transition: all 0.3s ease;
 }
+
 .btn-secondary:hover,
 .btn-secondary:focus,
 .btn-secondary:active,
@@ -70,17 +116,24 @@
     transform: translateY(-2px);
 }
 
-
-/* Home Page */
-:root {
-    --sidebar-width: 280px;
-    --sidebar-width-collapsed: 80px;
+/* --- Badges --- */
+.notification-badge {
+    background: #ff6b6b;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-size: 0.7rem;
 }
 
-body {
-    overflow-x: hidden;
+/* --- Logo Text --- */
+.logo-text {
+    color: #cdf0e6 !important;
+    background-color: transparent;
+    transition: opacity 0.3s ease;
 }
 
+/* =========================================
+   5. SIDEBAR LAYOUT (DASHBOARD)
+   ========================================= */
 .sidebar {
     width: var(--sidebar-width);
     height: 100vh;
@@ -88,13 +141,9 @@ body {
     color: #ffffff;
 }
 
-.sidebar.collapsed {
-    width: var(--sidebar-width-collapsed);
-}
-
 .sidebar-link {
     transition: all 0.2s ease;
-    border-radius: 8px;
+    border-radius: var(--radius);
     margin: 4px 10px;
     white-space: nowrap;
     overflow: hidden;
@@ -103,6 +152,7 @@ body {
 }
 
 .sidebar-link:hover {
+    text-decoration: none;
     color: #ffffff;
     background: rgba(255, 255, 255, 0.1);
     transform: translateX(5px);
@@ -113,21 +163,29 @@ body {
     background: rgba(255, 255, 255, 0.1);
 }
 
-.logo-text {
-    color: #cdf0e6 !important;
-    background-color: transparent;
-    transition: opacity 0.3s ease;
-}
-
-.notification-badge {
-    background: #ff6b6b;
-    padding: 2px 6px;
-    border-radius: 6px;
-    font-size: 0.7rem;
-}
-
 .profile-section {
     border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.profile-info {
+    transition: opacity 0.2s ease;
+}
+
+/* Toggle Button */
+.toggle-btn {
+    position: absolute;
+    right: -15px;
+    top: 20px;
+    background: white;
+    color: var(--primary-color) !important;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    border: none;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+    cursor: pointer;
+    transition: transform 0.3s ease;
 }
 
 .main-content {
@@ -137,24 +195,13 @@ body {
     transition: all 0.3s ease;
 }
 
-.collapsed~.main-content {
-    margin-left: var(--sidebar-width-collapsed);
+/* --- Sidebar Collapsed State --- */
+.sidebar.collapsed {
+    width: var(--sidebar-width-collapsed);
 }
 
-.toggle-btn {
-    position: absolute;
-    right: -15px;
-    top: 20px;
-    background: white;
-    color: #52357b !important;
-    border-radius: 50%;
-    width: 30px;
-    height: 30px;
-    border: none;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-    z-index: 100;
-    cursor: pointer;
-    transition: transform 0.3s ease;
+.collapsed ~ .main-content {
+    margin-left: var(--sidebar-width-collapsed);
 }
 
 .collapsed .toggle-btn {
@@ -184,21 +231,26 @@ body {
     margin: 0 !important;
 }
 
-.profile-info {
-    transition: opacity 0.2s ease;
-    
+/* =========================================
+   6. PAGE SPECIFIC STYLES
+   ========================================= */
+
+/* --- Auth Pages (Login/Enroll) --- */
+.side-section {
+    min-height: 30vh;
 }
 
-
-/* Welcome Page */
+/* --- Welcome / Hero Page --- */
 .hero-section {
     background-color: transparent;
     height: 100vh;
     color: white;
 }
+
 .hero-section h1 {
     font-weight: 600;
 }
+
 .hero-section .btn {
     border-radius: 8px;
     font-weight: 600;

@@ -34,7 +34,7 @@
 
         <div class="p-5">
             <h2 class="pb-3 underline">Create a new user</h2>
-            <form action="{% url 'enroll' %}" method="post" class="mt-5">
+            <form action="{% url 'enroll' %}" method="post" class="mt-5" id="form">
                 {% csrf_token %}
                 <div class="form-group mb-4">
                     <label for="username">Username</label>
@@ -43,6 +43,7 @@
                 <div class="form-group mb-4">
                     <label for="biometric">Biometric</label>
                     <input type="text" class="form-control mt-2" id="biometric" name="biometric">
+                    <input type="hidden" name="timestamps" id="timestamps" value="">
                 </div>
                 <button type="submit" class="btn btn-main w-100">Create</button>
             </form>
@@ -55,6 +56,43 @@
         </div>
      </div>
 </div>
-</main>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+
+        // send timestamps of keystrokes to backend
+        const time_input = document.getElementById("timestamps");
+        const bio_input = document.getElementById("biometric");
+        const form = document.getElementById('form');
+        const  timestamps = [];
+        const active = {};
+        bio_input.addEventListener('keydown', (event) => {
+            if(/^[a-zA-Z0-9]$/.test(event.key)){
+                const k = event.key.toLowerCase();
+                if(active[k]) return;
+                active[k] = {
+                    'key' : k,
+                    'dt' : Date.now()
+                };
+            }
+        })
+        bio_input.addEventListener('keyup', (event) => {
+            if(/^[a-zA-Z0-9]$/.test(event.key)){
+                const k = event.key.toLowerCase();
+                if(active[k]){
+                    active[k].ut = Date.now();
+                    timestamps.push(active[k]);
+                    delete active[k];
+                }
+            }
+            
+        })
+        form.addEventListener('submit', () => {
+            time_input.value = JSON.stringify(timestamps);
+        })
+        
+    })
+</script>
+</div></main>
 
 {% endblock %}

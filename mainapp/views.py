@@ -17,6 +17,8 @@ def enroll(request):
     if request.method == 'POST':
         username = request.POST.get('username')
         biometric = request.POST.get('biometric')
+        tim = request.POST.get('timestamps')
+        print(tim)
 
         if not username or not biometric:
             messages.error(request, 'Please provide both username and biometric data.')
