@@ -43,12 +43,13 @@ def create_dwell_flight(timestamps):
 def validate_dwell_flight(times):
     if len(times)<3:
         return False
-    for d in range(0, len(times), 2):
-        if times[d] < MIN_DWELL or times[d] > MAX_DWELL:
-            return False
-    for f in range(1, len(times), 2):
-        if times[f] < MIN_FLIGHT or times[f] > MAX_FLIGHT:
-            return False
+    for i, t in enumerate(times):
+        if i % 2 == 0:
+            if t < MIN_DWELL or t > MAX_DWELL:
+                return False
+        else:           
+            if t < MIN_FLIGHT or t > MAX_FLIGHT:
+                return False
     return True
 
 
@@ -79,7 +80,7 @@ def enroll(request):
         if not validate_dwell_flight(times):
             messages.error(request, 'Invalid biometric word.')
             return redirect(enroll)
-
+        
 
         if not username or not biometric:
             messages.error(request, 'Please provide both username and biometric data.')
