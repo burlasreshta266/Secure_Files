@@ -11,8 +11,10 @@ WORD = 'securefiles'
 W_LEN = len(WORD)
 MIN_DWELL = 30
 MAX_DWELL = 500
+DWELL_RANGE = [60, 90, 120, 160]
 MIN_FLIGHT = 0
 MAX_FLIGHT = 1000
+FLIGHT_RANGE = [30, 70, 120, 200]
 
 
 #---------------------
@@ -36,22 +38,56 @@ def create_dwell_flight(timestamps):
         res.append(dwell)
         if(i<len(timestamps)-1):
             flight = timestamps[i+1]['dt'] - char['ut']
-            if flight>=0 and flight<MAX_FLIGHT:
-                res.append(flight)
+            if not (flight>=0 and flight<MAX_FLIGHT):
+                res.clear()
+                return res
+            res.append(flight)
     return res
 
 def validate_dwell_flight(times):
     if len(times)<3:
         return False
-    for i, t in enumerate(times):
-        if i % 2 == 0:
-            if t < MIN_DWELL or t > MAX_DWELL:
-                return False
-        else:           
-            if t < MIN_FLIGHT or t > MAX_FLIGHT:
-                return False
-    return True
+    return all(
+        (t >= MIN_DWELL and t <= MAX_DWELL) if i % 2 == 0 else
+        (t >= MIN_FLIGHT and t <= MAX_FLIGHT)
+        for i, t in enumerate(times)
+    )
 
+def choose_dwell_bin(dt):
+    for i, r in enumerate(DWELL_RANGE):
+        if dt<=r:
+            return i
+    return len(DWELL_RANGE)
+
+def choose_flight_bin(ft):
+    for i, r in enumerate(FLIGHT_RANGE):
+        if ft<=r:
+            return i
+    return len(FLIGHT_RANGE)
+
+def create_bins(times):
+    bins = []
+    for i, t in enumerate(times):
+        if i%2==0:
+            bins.append(choose_dwell_bin(t))
+        else:
+            bins.append(choose_flight_bin(t))
+    return bins
+
+def validate_bins(bins, times):
+    if len(bins)<3:
+        return False
+    if(len(bins)!=len(times)):
+        return False
+    for i, b in enumerate(bins):
+        if b<0:
+            return False
+        if i%2==0 and b>len(DWELL_RANGE):
+            return False
+        if i%2!=0 and b>len(FLIGHT_RANGE):
+            return False
+    return True
+    
 
 #---------------------
 #   Page Views
@@ -81,6 +117,10 @@ def enroll(request):
             messages.error(request, 'Invalid biometric word.')
             return redirect(enroll)
         
+        bins = create_bins(times)
+        if not validate_bins(bins, times):
+            messages.error(request, 'Invalid biometric word.')
+            return redirect(enroll)
 
         if not username or not biometric:
             messages.error(request, 'Please provide both username and biometric data.')
