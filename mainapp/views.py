@@ -11,7 +11,7 @@ from .biometric.fuzzy import fuzzy_extractor, validate_S
 from .biometric.keys import generate_authentication_key
 
 
-WORD = 'securefilesbiometriclogin'
+WORD = 'securebiometricstorage'
 W_LEN = len(WORD)
 MIN_DWELL = 30
 MAX_DWELL = 500
@@ -106,7 +106,9 @@ def index(request):
 # Enroll new user
 def enroll(request):
     if request.method != 'POST':
-        return render(request, 'mainapp/enroll.html')
+        return render(request, 'mainapp/enroll.html', {
+            'bio_word' : WORD
+        })
     
     username = request.POST.get('username')
     biometric = request.POST.get('biometric')
@@ -164,7 +166,9 @@ def enroll(request):
 # User login
 def login(request): 
     if request.method != 'POST':
-        return render(request, 'mainapp/login.html')
+        return render(request, 'mainapp/login.html', {
+            'bio_word' : WORD
+        })
     
     username = request.POST.get('username')
     biometric = request.POST.get('biometric')
