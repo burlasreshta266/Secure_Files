@@ -38,13 +38,22 @@
                 {% csrf_token %}
                 <div class="form-group mb-4">
                     <label for="username">Username</label>
-                    <input type="text" class="form-control mt-2" id="username" name="username">
+                    <input type="text" class="form-control mt-2" id="username" name="username" placeholder="username">
                 </div>
                 <div class="form-group mb-4">
-                    <label for="biometric">Type <strong>{{ bio_word }}</strong> exactly</label>
-                    <input type="text" class="form-control mt-2" id="biometric" name="biometric" placeholder="{{ bio_word }}">
-                    <input type="hidden" name="timestamps" id="timestamps" value="">
+                    <label for="biometric_1">Type <strong>{{ bio_word }}</strong> exactly 3 times</label>
+                    <input type="text" class="form-control mt-2" id="biometric_1" name="biometric_1" placeholder="{{ bio_word }}">
+                    <input type="hidden" name="timestamps_1" id="timestamps_1" value="">
                 </div>
+                <div class="form-group mb-4">
+                    <input type="text" class="form-control mt-2" id="biometric_2" name="biometric_2" placeholder="{{ bio_word }}">
+                    <input type="hidden" name="timestamps_2" id="timestamps_2" value="">
+                </div>
+                <div class="form-group mb-4">
+                    <input type="text" class="form-control mt-2" id="biometric_3" name="biometric_3" placeholder="{{ bio_word }}">
+                    <input type="hidden" name="timestamps_3" id="timestamps_3" value="">
+                </div>
+
                 <button type="submit" class="btn btn-main w-100">Create</button>
             </form>
         </div>
@@ -60,8 +69,18 @@
 <script type="module">
     import {captureKeystrokes} from "{% static 'mainapp/keystrokes.js' %}"
     captureKeystrokes(
-        document.getElementById("timestamps"),
-        document.getElementById("biometric"),
+        document.getElementById("timestamps_1"),
+        document.getElementById("biometric_1"),
+        document.getElementById("form")
+    );
+    captureKeystrokes(
+        document.getElementById("timestamps_2"),
+        document.getElementById("biometric_2"),
+        document.getElementById("form")
+    );
+    captureKeystrokes(
+        document.getElementById("timestamps_3"),
+        document.getElementById("biometric_3"),
         document.getElementById("form")
     );
 </script>

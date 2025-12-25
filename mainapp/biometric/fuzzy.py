@@ -1,33 +1,34 @@
+from math import ceil
 import secrets
+from reedsolo import RSCodec, ReedSolomonError
 
-MIN_BITS = 128
+ECC_PADDING = 11
+rc = RSCodec(ECC_PADDING)
 
-def fuzzy_extractor(bits):
-    # validate bits
-    if not bits:
-        raise ValueError("length of bits must be larger")
-    if len(bits)<MIN_BITS:
-        raise ValueError("length of bits must be larger")
-    for x in bits:
-        if x!='0' and x!='1':
-            raise ValueError("bits must contain only 1 or 0")
-        
-    # generate secret
-    n = len(bits)
-    S = "".join(secrets.choice("01") for _ in range(n))
+def bits_to_byte(bits):
+    return int(bits, 2).to_bytes(ceil((len(bits)+ECC_PADDING)/8), byteorder='big')
 
-    # generate helper data
-    helper = []
-    for i in range(n):
-        h = int(bits[i]) ^ int(S[i])
-        helper.append(str(h))
+def generate_S(bits):
+    inp_bytes = bytearray(bits_to_byte(bits))
+    S_length = len(inp_bytes)-ECC_PADDING
+    if S_length<=0:
+        raise ValueError('Biometric is not long enough')
+    S_bytes = secrets.token_bytes(S_length)
+    codeword = bytearray(rc.encode(S_bytes))
+    if len(codeword)>len(inp_bytes):
+        inp_bytes = inp_bytes[:len(codeword)]
+    help_list = [codeword[i]^inp_bytes[i] for i in range(len(codeword))]
+    helper_bytes = bytes(help_list)
+    return S_bytes, helper_bytes
 
-    return S, "".join(helper)
-
-def validate_S(S):
-    if len(S)<MIN_BITS:
-        return False
-    for x in S:
-        if x!='0' and x!='1':
-            return False
-    return True
+def recover_S(login_bits, helper_bytes):
+    login_bytes = bytearray(bits_to_byte(login_bits))
+    length = min(len(login_bytes), len(helper_bytes))
+    login_bytes = login_bytes[:length]
+    helper_bytes = helper_bytes[:length]
+    noisy_code = [login_bytes[i]^helper_bytes[i] for i in range(length)]
+    try:
+        S_recovered, packets_ecc, errs = rc.decode(noisy_code)
+        return S_recovered
+    except ReedSolomonError:
+        return None

@@ -4,8 +4,8 @@ from django.contrib.auth.models import AbstractUser
 # Custom User model extending AbstractUser
 class User(AbstractUser):
     enroll_bins = models.TextField()
-    helper_data = models.TextField()
-    public_key_bytes = models.TextField()
+    helper_data = models.BinaryField()
+    public_key_bytes = models.BinaryField ()
     role = models.CharField(max_length=50, default="viewer")
 
     def __str__(self):

@@ -28,24 +28,15 @@
    2. BASE STYLES & RESETS
    ========================================= */
 * {
-    background-color: #fafafa; 
-    color: #180018;
     box-sizing: border-box;
 }
 
 body {
     overflow-x: hidden;
+    background-color: #fafafa; 
+    color: #180018;
 }
 
-a {
-    color: var(--dark-grey);
-    transition: text-decoration 0.2s ease;
-    text-decoration: none;
-}
-
-a:hover {
-    text-decoration: underline;
-}
 
 /* =========================================
    3. UTILITIES & TYPOGRAPHY
@@ -101,9 +92,10 @@ a:hover {
 
 .btn-secondary {
     background-color: var(--secondary-color);
-    color: var(--text-color);
+    color: var(--text-color) !important;
     border-radius: var(--radius);
     font-weight: 600;
+    text-decoration: none;
     transition: all 0.3s ease;
 }
 
@@ -112,6 +104,7 @@ a:hover {
 .btn-secondary:active,
 .btn-secondary.clicked {
     color: #180018;
+    text-decoration: none;
     box-shadow: 0px 0px 8px 2px #97c3b797;
     transform: translateY(-2px);
 }
@@ -129,6 +122,9 @@ a:hover {
     color: #cdf0e6 !important;
     background-color: transparent;
     transition: opacity 0.3s ease;
+}
+.logo-text:hover {
+    text-decoration: none;
 }
 
 /* =========================================

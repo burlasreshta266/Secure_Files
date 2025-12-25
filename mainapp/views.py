@@ -7,7 +7,7 @@ from django.contrib.auth import logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from cryptography.hazmat.primitives import serialization
 from .biometric.encode import encode_bins
-from .biometric.fuzzy import fuzzy_extractor, validate_S
+from .biometric.fuzzy import generate_S, recover_S
 from .biometric.keys import generate_authentication_key
 
 
@@ -15,12 +15,13 @@ WORD = 'securebiometricstorage'
 W_LEN = len(WORD)
 MIN_DWELL = 30
 MAX_DWELL = 500
-DWELL_RANGE = [60, 90, 120, 160]
+DWELL_RANGE = [110]
 MIN_FLIGHT = 0
 MAX_FLIGHT = 1000
-FLIGHT_RANGE = [30, 70, 120, 200]
-MAX_THRESHOLD = 5
+FLIGHT_RANGE = [130]
+MAX_THRESHOLD = 0.65*(2*W_LEN-1)
 
+#  19 17 20 15 17 12 14 18 23 28 17 20 23 
 
 #---------------------
 #   Helper Functions
@@ -92,7 +93,7 @@ def validate_bins(bins, times):
         if i%2!=0 and b>len(FLIGHT_RANGE):
             return False
     return True
-    
+
 
 #---------------------
 #   Page Views
@@ -111,39 +112,70 @@ def enroll(request):
         })
     
     username = request.POST.get('username')
-    biometric = request.POST.get('biometric')
-    tim = request.POST.get('timestamps')
-    
+    biometric_1 = request.POST.get('biometric_1')
+    tim_1 = request.POST.get('timestamps_1')
+    biometric_2 = request.POST.get('biometric_2')
+    tim_2 = request.POST.get('timestamps_2')
+    biometric_3 = request.POST.get('biometric_3')
+    tim_3 = request.POST.get('timestamps_3')
+
+    if not tim_1 or not biometric_1 or not tim_2 or not biometric_2 or not tim_3 or not biometric_3:
+        messages.error(request, 'Biometric must not be empty')
+        return redirect('login')
+        
     # check if user typed correct phrase
-    if biometric!=WORD:
+    if biometric_1!=WORD or biometric_2!=WORD or biometric_3!=WORD:
         messages.error(request, 'Wrong biometric word typed')
         return redirect(enroll)
 
     # get and validate timestamps
-    timestamps = json.loads(tim)
-    if not validate_timestamps(timestamps):
+    try:
+        timestamps_1 = json.loads(tim_1)
+        timestamps_2 = json.loads(tim_2)
+        timestamps_3 = json.loads(tim_3)
+    except:
+        messages.error(request, 'timestamps not loaded correctly')
+        return redirect('enroll')
+
+    if not validate_timestamps(timestamps_1) or not validate_timestamps(timestamps_2) or not validate_timestamps(timestamps_3):
         messages.error(request, 'Wrong biometric word typed')
         return redirect(enroll)
 
-    timestamps = sorted(timestamps, key = lambda x : x['dt'])
+    timestamps_1 = sorted(timestamps_1, key = lambda x : x['dt'])
+    timestamps_2 = sorted(timestamps_2, key = lambda x : x['dt'])
+    timestamps_3 = sorted(timestamps_3, key = lambda x : x['dt'])
 
     # get and validate Dwell and Flight times
-    times = create_dwell_flight(timestamps)
-    if not validate_dwell_flight(times):
-        messages.error(request, 'Invalid biometric')
+    times_1 = create_dwell_flight(timestamps_1)
+    times_2 = create_dwell_flight(timestamps_2)
+    times_3 = create_dwell_flight(timestamps_3)
+    if not validate_dwell_flight(times_1) or not validate_dwell_flight(times_2) or not validate_dwell_flight(times_3):
+        messages.error(request, 'Invalid dwell and flight')
         return redirect(enroll)
         
-    # create bins 
-    bins = create_bins(times)
-    if not validate_bins(bins, times):
-        messages.error(request, 'Invalid biometric')
+    # Average the raw times
+    averaged_times = []
+    for i in range(len(times_1)):
+        raw_avg = (times_1[i] + times_2[i] + times_3[i]) / 3
+        averaged_times.append(raw_avg)
+
+    # Create bins
+    bins = create_bins(averaged_times)
+
+    if not validate_bins(bins, averaged_times):
+        messages.error(request, 'Invalid bins generated from average')
         return redirect(enroll)
+
     # store bins for threshold validation during login
     enroll_bins = ''.join(list(map(str, bins)))
-        
-    # generate bits, S, helper_data, keys
-    bits = encode_bins(bins)
-    S, helper_data = fuzzy_extractor(bits)
+    
+    # get bits from bins
+    enroll_bits = encode_bins(bins)
+
+    # get S and helper data
+    S, helper_data = generate_S(enroll_bits)
+
+    # generate keys from S
     private_key, public_key = generate_authentication_key(S)
 
     public_key_bytes = public_key.public_bytes(
@@ -173,6 +205,14 @@ def login(request):
     username = request.POST.get('username')
     biometric = request.POST.get('biometric')
     tim = request.POST.get('timestamps')
+
+    if not tim or not biometric:
+        messages.error(request, 'Biometric must not be empty')
+        return redirect('login')
+    
+    if len(tim)<=0 or len(biometric)<=0:
+        messages.error(request, 'Biometric must not be empty')
+        return redirect('login')
     
     # check if user typed correct phrase
     if biometric!=WORD:
@@ -180,7 +220,12 @@ def login(request):
         return redirect('login')
 
     # get and validate timestamps
-    timestamps = json.loads(tim)
+    try:
+        timestamps = json.loads(tim)
+    except:
+        messages.error(request, 'timestamps not loaded correctly')
+        return redirect('login')
+    
     if not validate_timestamps(timestamps):
         messages.error(request, 'Wrong biometric word typed')
         return redirect('login')
@@ -190,15 +235,15 @@ def login(request):
     # get and validate Dwell and Flight times
     times = create_dwell_flight(timestamps)
     if not validate_dwell_flight(times):
-        messages.error(request, 'Invalid biometric')
+        messages.error(request, 'Invalid dwell and flight')
         return redirect('login')
         
     # create bins 
     login_bins = create_bins(times)
     if not validate_bins(login_bins, times):
-        messages.error(request, 'Invalid biometric')
+        messages.error(request, 'Invalid bins')
         return redirect('login')
-
+    
     # check if user exists
     try:
         user = User.objects.get(username=username)
@@ -210,7 +255,7 @@ def login(request):
     enroll_bins = user.enroll_bins
     # length
     if len(enroll_bins)!=len(login_bins):
-        messages.error(request, 'Invalid biometric')
+        messages.error(request, 'Invalid enroll bins does not match login bins')
         return redirect('login')
     # threshold
     threshold = 0
@@ -218,39 +263,44 @@ def login(request):
         t = abs(int(enroll_bins[i])-int(login_bins[i]))
         threshold+=t
     if threshold>MAX_THRESHOLD:
-        messages.error(request, 'Invalid biometric')
+        messages.error(request, 'Threshold exceed')
         return redirect('login')
         
-    bits = encode_bins(login_bins)
-    helper_data = user.helper_data
-    public_key_bytes = user.public_key_bytes
+    # get bits rom bins
+    login_bits = encode_bins(login_bins)
 
-    if len(bits)!=len(helper_data):
-        messages.error(request, 'Invalid biometric')
-        return redirect('login')
+    # get helper data from database
+    helper_data = bytes(user.helper_data)
+
+    print(f"Enroll Bins: {enroll_bins}")
+    print(f"Login Bins:  {''.join(map(str, login_bins))}")
     
-    # create S from login data
-    S_list = [str(int(bits[i])^int(helper_data[i])) for i in range(len(bits))]
-    S1 = ''.join(S_list)
-    if(not validate_S(S1)):
-        messages.error(request, 'Invalid biometric')
+    # Calculate difference manually to see it
+    diff_count = sum(1 for a, b in zip(enroll_bins, ''.join(map(str, login_bins))) if a != b)
+    print(f"Number of differing bins: {diff_count}")
+
+    # recover S
+    recovered_S = recover_S(login_bits, helper_data)
+    if not recovered_S:
+        messages.error(request, 'Recovered S should not be none')
         return redirect('login')
-    
-    # generate keys from login S
-    p, generated_public_key = generate_authentication_key(S1)
-    generated_public_key_bytes = generated_public_key.public_bytes(
+
+    # generate keys from recovered S
+    p, login_public_key = generate_authentication_key(recovered_S)
+
+    login_public_key_bytes = login_public_key.public_bytes(
         encoding=serialization.Encoding.Raw,
         format=serialization.PublicFormat.Raw
     )
 
-    # if both enroll and login keys match, the user logged in
-    if generated_public_key_bytes==public_key_bytes:
+    # compare login and enroll public keys
+    public_key = user.public_key_bytes
+    if public_key==login_public_key_bytes:
         auth_login(request, user)
         return redirect('home')
     else:
-        messages.error(request, 'Invalid biometric')
+        messages.error(request, 'Invaid User')
         return redirect('login')
-    
 
 
 # User logout
