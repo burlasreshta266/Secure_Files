@@ -4,8 +4,11 @@
 :root {
     /* Colors */
     --primary-color: #52357b;
+    --primary-color-hover: #482e6d;
     --secondary-color: #b2d8ce;
+    --secondary-color-hover: #9ec7bd;
     --accent-color: #5459ac;
+    --accent-color-hover: #434895;
     --background-color: #fafafa;
     --text-color: #180018;
     
@@ -48,6 +51,9 @@ body {
 .grey-text {
     color: var(--light-grey);
 }
+.dark-muted {
+    color: var(--dark-grey);
+}
 
 
 /* Gradient Background Utility */
@@ -75,7 +81,6 @@ body {
 .btn-main {
     background-color: var(--accent-color);
     color: var(--background-color);
-    border-radius: var(--radius);
     font-weight: 600;
     transition: all 0.3s ease;
 }
@@ -84,16 +89,13 @@ body {
 .btn-main:focus,
 .btn-main:active,
 .btn-main.clicked {
-    background-color: var(--accent-color);
+    background-color: var(--accent-color-hover);
     color: white;
-    box-shadow: 0px 0px 8px 2px #45489297;
-    transform: translateY(-2px);
 }
 
 .btn-secondary {
     background-color: var(--secondary-color);
     color: var(--text-color) !important;
-    border-radius: var(--radius);
     font-weight: 600;
     text-decoration: none;
     transition: all 0.3s ease;
@@ -103,11 +105,11 @@ body {
 .btn-secondary:focus,
 .btn-secondary:active,
 .btn-secondary.clicked {
-    color: #180018;
+    color: var(--text-color);
     text-decoration: none;
-    box-shadow: 0px 0px 8px 2px #97c3b797;
-    transform: translateY(-2px);
+    background-color: var(--secondary-color-hover);
 }
+
 
 /* --- Badges --- */
 .notification-badge {
@@ -126,6 +128,36 @@ body {
 .logo-text:hover {
     text-decoration: none;
 }
+
+.folder-card {
+    border: 1px solid var(--light-grey);
+    border-radius: 5px;
+    background-color: white;
+    transition: all 0.3s ease;
+    padding: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.folder-card:hover {
+    border: 1px solid var(--dark-grey);
+    background-color: var(--secondary-color);
+}
+
+.border-form {
+    border: 2px solid var(--primary-color);
+    border-radius: 5px;
+    padding: 15px;
+    margin: 0 auto;
+    width: 60%;
+    background-color: #fbfbfb;
+}
+.border-form input {
+    border: 1px solid var(--light-grey);
+    border-radius: 4px;
+    margin: 8px 0 15px 0;
+    width: 100%;
+    padding: 8px;
+}
+
 
 /* =========================================
    5. SIDEBAR LAYOUT (DASHBOARD)
@@ -205,8 +237,7 @@ body {
 }
 
 .collapsed .hide-on-collapse {
-    opacity: 0;
-    visibility: hidden;
+    display: none;
 }
 
 .collapsed .logo-text {

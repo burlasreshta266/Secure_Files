@@ -1,0 +1,79 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link href="{% static 'mainapp/styles.css' %}" rel="stylesheet"> 
+    <title>SecureFiles</title>
+</head>
+<body style="background-color: #fafafa;">
+    
+<section class="d-flex">
+
+    <!-- Side Panel -->
+    <nav class="sidebar gradient-bg d-flex flex-column flex-shrink-0 position-fixed">
+        <button class="toggle-btn" onclick="toggleSidebar()">
+            <i class="fas fa-chevron-left text-muted"></i>
+        </button>
+
+        <div class="p-4">
+            <h4 class="logo-text fw-bold mb-0">SecureFiles</h4>
+            <p class="small hide-on-collapse grey-text">Dashboard</p>
+        </div>
+
+        <div class="nav flex-column">
+            <a href="{% url 'home' %}" 
+               class="sidebar-link text-decoration-none p-3 {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+                <i class="fas fa-home me-3"></i>
+                <span class="hide-on-collapse">Home</span>
+            </a>
+
+            <a href="{% url 'folders' %}" 
+               class="sidebar-link text-decoration-none p-3 {% if request.resolver_match.url_name == 'folders' or request.resolver_match.url_name == 'folder_detail' or request.resolver_match.url_name == 'create_folder' %}active{% endif %}">
+                <i class="fas fa-folder me-3"></i>
+                <span class="hide-on-collapse">My Folders</span>
+            </a>
+
+            <a href="{% url 'shared_folders' %}" 
+               class="sidebar-link text-decoration-none p-3 {% if request.resolver_match.url_name == 'shared_folders' %}active{% endif %}">
+                <i class="fas fa-share me-3"></i>
+                <span class="hide-on-collapse">Shared Folders</span>
+            </a>
+
+            <a href="{% url 'my_files' %}" 
+               class="sidebar-link text-decoration-none p-3 {% if request.resolver_match.url_name == 'files' %}active{% endif %}">
+                <i class="fas fa-file me-3"></i>
+                <span class="hide-on-collapse">My Files</span>
+            </a>
+        </div>
+
+        <a class="profile-section mt-auto p-4 text-decoration-none">
+            <div class="d-flex align-items-center">
+                <img src="{% static 'mainapp/profile_default.png' %}" style="height:60px" class="rounded-circle" alt="Profile">
+                <div class="ms-3 profile-info">
+                    <h6 class="mb-0">{{ request.user.username }}</h6>
+                    <small class="grey-text">{{ request.user.role|default:"User" }}</small>
+                </div>
+            </div>
+        </a>
+    </nav>
+
+    <main class="main-content w-100">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <script>
+        function toggleSidebar() {
+                const sidebar = document.querySelector('.sidebar');
+                sidebar.classList.toggle('collapsed');
+            }
+    </script>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

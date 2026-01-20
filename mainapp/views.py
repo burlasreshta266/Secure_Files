@@ -1,14 +1,17 @@
-from django.shortcuts import render, redirect
-from .models import User
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, render, redirect
+from .models import User, File, Folder
 from django.contrib import messages
-import random, json
+import json, os, base64
 from django.contrib.auth import login as auth_login
 from django.contrib.auth import logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from cryptography.hazmat.primitives import serialization
 from .biometric.encode import encode_bins
-from .biometric.fuzzy import generate_S, recover_S
-from .biometric.keys import generate_authentication_key
+from .biometric.fuzzy import fuzzy_gen, fuzzy_rep
+from .biometric.keys import generate_authentication_key, generate_encryption_material
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from .forms import FolderForm, FileUploadForm
 
 
 WORD = 'securebiometricstorage'
@@ -21,7 +24,6 @@ MAX_FLIGHT = 1000
 FLIGHT_RANGE = [130]
 MAX_THRESHOLD = 0.65*(2*W_LEN-1)
 
-#  19 17 20 15 17 12 14 18 23 28 17 20 23 
 
 #---------------------
 #   Helper Functions
@@ -94,6 +96,18 @@ def validate_bins(bins, times):
             return False
     return True
 
+def get_user_key(request):
+    s_hex = request.session.get('bio_key')
+    if not s_hex:
+        return None
+    S = bytes.fromhex(s_hex)
+    return generate_encryption_material(S)
+
+def encrypt_data(key, data):
+    aesgcm = AESGCM(key)
+    nonce = os.urandom(12)
+    ciphertext = aesgcm.encrypt(nonce, data, None)
+    return base64.b64encode(nonce).decode('utf-8'), base64.b64encode(ciphertext).decode('utf-8')
 
 #---------------------
 #   Page Views
@@ -116,15 +130,13 @@ def enroll(request):
     tim_1 = request.POST.get('timestamps_1')
     biometric_2 = request.POST.get('biometric_2')
     tim_2 = request.POST.get('timestamps_2')
-    biometric_3 = request.POST.get('biometric_3')
-    tim_3 = request.POST.get('timestamps_3')
 
-    if not tim_1 or not biometric_1 or not tim_2 or not biometric_2 or not tim_3 or not biometric_3:
+    if not tim_1 or not biometric_1 or not tim_2 or not biometric_2:
         messages.error(request, 'Biometric must not be empty')
         return redirect('login')
         
     # check if user typed correct phrase
-    if biometric_1!=WORD or biometric_2!=WORD or biometric_3!=WORD:
+    if biometric_1!=WORD or biometric_2!=WORD:
         messages.error(request, 'Wrong biometric word typed')
         return redirect(enroll)
 
@@ -132,31 +144,28 @@ def enroll(request):
     try:
         timestamps_1 = json.loads(tim_1)
         timestamps_2 = json.loads(tim_2)
-        timestamps_3 = json.loads(tim_3)
     except:
         messages.error(request, 'timestamps not loaded correctly')
         return redirect('enroll')
 
-    if not validate_timestamps(timestamps_1) or not validate_timestamps(timestamps_2) or not validate_timestamps(timestamps_3):
+    if not validate_timestamps(timestamps_1) or not validate_timestamps(timestamps_2):
         messages.error(request, 'Wrong biometric word typed')
         return redirect(enroll)
 
     timestamps_1 = sorted(timestamps_1, key = lambda x : x['dt'])
     timestamps_2 = sorted(timestamps_2, key = lambda x : x['dt'])
-    timestamps_3 = sorted(timestamps_3, key = lambda x : x['dt'])
 
     # get and validate Dwell and Flight times
     times_1 = create_dwell_flight(timestamps_1)
     times_2 = create_dwell_flight(timestamps_2)
-    times_3 = create_dwell_flight(timestamps_3)
-    if not validate_dwell_flight(times_1) or not validate_dwell_flight(times_2) or not validate_dwell_flight(times_3):
+    if not validate_dwell_flight(times_1) or not validate_dwell_flight(times_2):
         messages.error(request, 'Invalid dwell and flight')
         return redirect(enroll)
         
     # Average the raw times
     averaged_times = []
     for i in range(len(times_1)):
-        raw_avg = (times_1[i] + times_2[i] + times_3[i]) / 3
+        raw_avg = (times_1[i] + times_2[i]) / 2
         averaged_times.append(raw_avg)
 
     # Create bins
@@ -173,15 +182,16 @@ def enroll(request):
     enroll_bits = encode_bins(bins)
 
     # get S and helper data
-    S, helper_data = generate_S(enroll_bits)
+    S, helper = fuzzy_gen(enroll_bits)
 
     # generate keys from S
-    private_key, public_key = generate_authentication_key(S)
+    private_key, public_key = generate_authentication_key(S.encode('utf-8'))
 
     public_key_bytes = public_key.public_bytes(
         encoding=serialization.Encoding.Raw,
         format=serialization.PublicFormat.Raw
     )
+    helper_data = helper.encode('utf-8')
 
     # Create the user
     User.objects.create_user(
@@ -270,23 +280,23 @@ def login(request):
     login_bits = encode_bins(login_bins)
 
     # get helper data from database
-    helper_data = bytes(user.helper_data)
+    helper_data_bytes = bytes(user.helper_data)
+
+    helper_str = helper_data_bytes.decode('utf-8')
 
     print(f"Enroll Bins: {enroll_bins}")
     print(f"Login Bins:  {''.join(map(str, login_bins))}")
     
-    # Calculate difference manually to see it
     diff_count = sum(1 for a, b in zip(enroll_bins, ''.join(map(str, login_bins))) if a != b)
     print(f"Number of differing bins: {diff_count}")
 
-    # recover S
-    recovered_S = recover_S(login_bits, helper_data)
+    recovered_S = fuzzy_rep(login_bits, helper_str)
+    
     if not recovered_S:
         messages.error(request, 'Recovered S should not be none')
         return redirect('login')
 
-    # generate keys from recovered S
-    p, login_public_key = generate_authentication_key(recovered_S)
+    p, login_public_key = generate_authentication_key(recovered_S.encode('utf-8'))
 
     login_public_key_bytes = login_public_key.public_bytes(
         encoding=serialization.Encoding.Raw,
@@ -297,6 +307,7 @@ def login(request):
     public_key = user.public_key_bytes
     if public_key==login_public_key_bytes:
         auth_login(request, user)
+        request.session['bio_key'] = recovered_S.encode('utf-8').hex()
         return redirect('home')
     else:
         messages.error(request, 'Invaid User')
@@ -313,16 +324,150 @@ def logout(request):
 # Home page view
 @login_required
 def home(request):
-    return render(request, 'mainapp/home.html')
+    recent_folders = Folder.objects.filter(creator=request.user).order_by('-folder_id')[:4]
+    recent_files = File.objects.filter(uploaded_by=request.user).order_by('-file_id')[:5]
+    
+    return render(request, 'mainapp/home.html', {
+        'recent_folders': recent_folders,
+        'recent_files': recent_files
+    })
 
 
-# Files management view
-@login_required
-def files(request):     
-    pass
-
-
-# Folders management view
 @login_required
 def folders(request):
-    pass
+    # 1. Handle Folder Creation
+    if request.method == 'POST':
+        form = FolderForm(request.POST)
+        if form.is_valid():
+            folder = form.save(commit=False)
+            folder.creator = request.user
+            folder.save()
+            return redirect('folders')
+    else:
+        form = FolderForm()
+
+    # 2. Get Lists
+    my_folders = Folder.objects.filter(creator=request.user)
+
+    return render(request, 'mainapp/folders.html', {
+        'form': form,
+        'my_folders': my_folders,
+        
+    })
+
+
+@login_required
+def shared_folders(request):
+    shared_folders_list = request.user.shared_folders.all()
+    return render(request, "mainapp/shared_folders.html", {
+        'shared_folders': shared_folders_list
+    })
+
+
+@login_required
+def folder_detail(request, folder_id):
+    try:
+        folder = Folder.objects.get(folder_id=folder_id)
+    except Folder.DoesNotExist:
+        messages.error(request, "Folder not found")
+        return redirect('folders')
+
+    # Check Permissions
+    if folder.creator != request.user and request.user not in folder.shared_users.all():
+        messages.error(request, "You do not have access to this folder")
+        return redirect('folders')
+
+    # Handle File Upload
+    if request.method == 'POST':
+        file_form = FileUploadForm(request.POST, request.FILES)
+        if file_form.is_valid():
+            uploaded_file = request.FILES['file']
+            file_data = uploaded_file.read()
+            
+            # Encrypt
+            key = get_user_key(request)
+            if not key:
+                messages.error(request, "Biometric session expired. Please login again.")
+                return redirect('login')
+                
+            nonce_b64, ciphertext_b64 = encrypt_data(key, file_data)
+            
+            # Save
+            File.objects.create(
+                uploaded_by=request.user,
+                filename=uploaded_file.name,
+                folder=folder,
+                ciphertext=ciphertext_b64,
+                nonce=nonce_b64
+            )
+            messages.success(request, "File uploaded and encrypted!")
+            return redirect('folder_detail', folder_id=folder_id)
+    else:
+        file_form = FileUploadForm()
+
+    files = File.objects.filter(folder=folder)
+    
+    # Generate Invite Link (Simple version)
+    invite_link = request.build_absolute_uri(f"/join/{folder.folder_id}/")
+
+    return render(request, 'mainapp/folder_detail.html', {
+        'folder': folder,
+        'files': files,
+        'file_form': file_form,
+        'invite_link': invite_link
+    })
+
+
+@login_required
+def join_folder(request, folder_id):
+    try:
+        folder = Folder.objects.get(folder_id=folder_id)
+    except Folder.DoesNotExist:
+        messages.error(request, "Folder does not exist")
+        return redirect('folders')
+        
+    if folder.creator == request.user:
+        messages.info(request, "You are the owner of this folder.")
+        return redirect('folder_detail', folder_id=folder_id)
+
+    # Add user to shared list
+    folder.shared_users.add(request.user)
+    messages.success(request, f"You have joined '{folder.foldername}'")
+    return redirect('folder_detail', folder_id=folder_id)
+
+
+@login_required
+def download_file(request, file_id):
+    file_obj = get_object_or_404(File, file_id=file_id)
+    folder = file_obj.folder
+
+    # Permission Check
+    if folder and (folder.creator != request.user and request.user not in folder.shared_users.all()):
+        return HttpResponse("Access Denied", status=403)
+    
+    key = get_user_key(request)
+    if not key:
+        messages.error(request, "Please login to decrypt files.")
+        return redirect('login')
+
+    try:
+        # Decode DB fields
+        nonce = base64.b64decode(file_obj.nonce)
+        ciphertext = base64.b64decode(file_obj.ciphertext)
+        
+        # Decrypt
+        aesgcm = AESGCM(key)
+        plaintext = aesgcm.decrypt(nonce, ciphertext, None)
+        
+        # Serve File
+        response = HttpResponse(plaintext, content_type='application/octet-stream')
+        response['Content-Disposition'] = f'attachment; filename="{file_obj.filename}"'
+        return response
+    except Exception as e:
+        return HttpResponse(f"Decryption Failed: {str(e)}", status=500)
+
+
+@login_required
+def my_files(request):
+    user_files = File.objects.filter(uploaded_by=request.user)
+    return render(request, 'mainapp/my_files.html', {'files': user_files})

@@ -1,0 +1,76 @@
+{% extends "mainapp/home_layout.html" %}
+{% load static %}
+{% block content %}
+
+<div class="container mt-4">
+
+    <!-- Messages -->
+   {% if messages %}
+        <div class="container mt-3">
+        {% for message in messages %}
+            <div class="alert 
+                {% if message.tags == 'error' %}alert-danger
+                {% else %}alert-{{ message.tags }}
+                {% endif %}
+                alert-dismissible fade show" role="alert">
+
+                {{ message }}
+
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+        </div>
+    {% endif %}
+
+
+    <section class="mb-3 d-flex justify-content-between align-items-center">
+    <div>
+        <h2>My Folders</h2>
+        <p class="dark-muted">Folders that were created by you</p>
+    </div>
+    <div>
+        <button class="btn btn-main ms-4" data-bs-toggle="modal" data-bs-target="#createFolderModal">
+            <i class="fas fa-plus"></i> Create Folder
+        </button>
+        <a href="{% url 'logout' %}" class="btn btn-danger ms-4">Logout</a>
+    </div>
+    </section>
+
+    <section>
+        <div class="row mb-2">
+            {% for folder in my_folders %}
+            <div class="col-md-3">
+                <div class="folder-card mb-3">
+                    <a href="{% url 'folder_detail' folder.folder_id %}" class="text-decoration-none text-dark">
+                        <i class="fas fa-folder text-warning"></i> 
+                        <span class="ms-2 fw-bold">{{ folder.foldername }}</span>
+                    </a>
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-muted">No folders created yet.</p>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+
+<div class="modal fade" id="createFolderModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title">Create New Folder</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    {{ form.as_p }}
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-main">Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,34 +1,70 @@
-from math import ceil
 import secrets
-from reedsolo import RSCodec, ReedSolomonError
 
-ECC_PADDING = 11
-rc = RSCodec(ECC_PADDING)
+SECRET_BITS = 128       
+BLOCK_SIZE = 5         
 
-def bits_to_byte(bits):
-    return int(bits, 2).to_bytes(ceil((len(bits)+ECC_PADDING)/8), byteorder='big')
 
-def generate_S(bits):
-    inp_bytes = bytearray(bits_to_byte(bits))
-    S_length = len(inp_bytes)-ECC_PADDING
-    if S_length<=0:
-        raise ValueError('Biometric is not long enough')
-    S_bytes = secrets.token_bytes(S_length)
-    codeword = bytearray(rc.encode(S_bytes))
-    if len(codeword)>len(inp_bytes):
-        inp_bytes = inp_bytes[:len(codeword)]
-    help_list = [codeword[i]^inp_bytes[i] for i in range(len(codeword))]
-    helper_bytes = bytes(help_list)
-    return S_bytes, helper_bytes
+def repeat_encode(bitstring, k):
+    encoded = []
+    for b in bitstring:
+        encoded.extend([b] * k)
+    return encoded
 
-def recover_S(login_bits, helper_bytes):
-    login_bytes = bytearray(bits_to_byte(login_bits))
-    length = min(len(login_bytes), len(helper_bytes))
-    login_bytes = login_bytes[:length]
-    helper_bytes = helper_bytes[:length]
-    noisy_code = [login_bytes[i]^helper_bytes[i] for i in range(length)]
-    try:
-        S_recovered, packets_ecc, errs = rc.decode(noisy_code)
-        return S_recovered
-    except ReedSolomonError:
-        return None
+
+def repeat_decode(encoded_bits, k):
+    if len(encoded_bits) % k != 0:
+        raise ValueError("Encoded length not divisible by block size")
+
+    decoded = []
+    for i in range(0, len(encoded_bits), k):
+        block = encoded_bits[i:i+k]
+        ones = block.count('1')
+        zeros = block.count('0')
+        # deterministic tie-break (default to 0)
+        decoded.append('1' if ones > zeros else '0')
+
+    return ''.join(decoded)
+
+
+def expand_bits(bits, target_len):
+    expanded = bits[:]
+    while len(expanded) < target_len:
+        expanded += bits
+    return expanded[:target_len]
+
+
+def fuzzy_gen(bits_enroll):
+    # 1. Generate secret S
+    S = ''.join(secrets.choice('01') for _ in range(SECRET_BITS))
+
+    # 2. ECC encode S
+    C = repeat_encode(S, BLOCK_SIZE)
+
+    # 3. Expand biometric bits
+    bits_expanded = expand_bits(list(bits_enroll), len(C))
+
+    # 4. Create helper data
+    helper = [
+        str(int(bits_expanded[i]) ^ int(C[i]))
+        for i in range(len(C))
+    ]
+
+    return S, ''.join(helper)
+
+
+def fuzzy_rep(bits_login, helper):
+    bits_expanded = expand_bits(list(bits_login), len(helper))
+
+    # 2. Recover noisy codeword
+    noisy_C = [
+        str(int(bits_expanded[i]) ^ int(helper[i]))
+        for i in range(len(helper))
+    ]
+
+    # 3. ECC decode
+    S_recovered = repeat_decode(noisy_C, BLOCK_SIZE)
+
+    if len(S_recovered) != SECRET_BITS:
+        raise ValueError("Recovered S has invalid length")
+
+    return S_recovered
