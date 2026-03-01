@@ -1,0 +1,73 @@
+{% extends "mainapp/layout.html" %}
+{% load static %}
+{% block body %}
+
+<main class="container-fluid">
+<div class="row">
+
+    <!-- logo section -->
+    <div class="col-12 col-lg-5 side-section gradient-bg d-flex flex-column justify-content-center align-items-center">
+        <h1 class="logo-text">Welcome Back!</h1>
+    </div>
+
+    <!-- form section -->
+     <div class="col-12 col-lg-7 min-vh-100">
+
+    <!-- Messages -->
+   {% if messages %}
+        <div class="container mt-3">
+        {% for message in messages %}
+            <div class="alert 
+                {% if message.tags == 'error' %}alert-danger
+                {% else %}alert-{{ message.tags }}
+                {% endif %}
+                alert-dismissible fade show" role="alert">
+
+                {{ message }}
+
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+        </div>
+    {% endif %}
+
+
+        <div class="p-5">
+            <h2 class="pb-3 underline">Login</h2>
+            <form action="{% url 'login' %}" method="post" class="mt-5" id="form">
+                {% csrf_token %}
+                <div class="form-group mb-4">
+                    <label for="username">Username</label>
+                    <input type="text" class="form-control mt-2" id="username" name="username" placeholder="username">                   
+                </div>
+                <div class="form-group mb-4">
+                    <label for="biometric">Biometric</label>
+                    <input type="text" class="form-control mt-2" id="biometric" name="biometric" placeholder="{{ bio_word }}">
+                    <small>Type <strong>{{ bio_word }}</strong> exactly</small>
+                    <input type="hidden" name="timestamps" id="timestamps" value="">
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Login</button>
+            </form>
+        </div>
+
+        <div class="text-center mb-3">
+            <div class="d-inline-block">
+                <span>New here?</span>
+                <a href="{% url 'enroll' %}" class="link-text">Create an account</a>
+        </div>
+     </div>
+     </div>
+</div>
+
+<script type="module">
+    import {captureKeystrokes} from "{% static 'mainapp/keystrokes.js' %}"
+    captureKeystrokes(
+        document.getElementById("timestamps"),
+        document.getElementById("biometric"),
+        document.getElementById("form")
+    );
+</script>
+
+</main>
+
+{% endblock %}

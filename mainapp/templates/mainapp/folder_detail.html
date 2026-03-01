@@ -1,0 +1,79 @@
+{% extends "mainapp/home_layout.html" %}
+{% load static %}
+{% block content %}
+
+<div class="container mt-4">
+
+    <!-- Messages -->
+   {% if messages %}
+        <div class="container mt-3">
+        {% for message in messages %}
+            <div class="alert 
+                {% if message.tags == 'error' %}alert-danger
+                {% else %}alert-{{ message.tags }}
+                {% endif %}
+                alert-dismissible fade show" role="alert">
+
+                {{ message }}
+
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+        </div>
+    {% endif %}
+
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3><i class="fas fa-folder-open text-warning me-2"></i> {{ folder.foldername }}</h3>
+        
+        <div>
+            <button class="btn btn-outline-secondary me-2" onclick="copyInvite()">
+                <i class="fas fa-link"></i> Copy Invite Link
+            </button>
+            <input type="hidden" id="inviteLink" value="{{ invite_link }}">
+        </div>
+    </div>
+
+    <div class="card p-4 mb-4">
+        <h5>Upload Encrypted File</h5>
+        <form method="POST" enctype="multipart/form-data" class="d-flex gap-2">
+            {% csrf_token %}
+            {{ file_form.file }}
+            <button type="submit" class="btn btn-main">Upload</button>
+        </form>
+    </div>
+
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Filename</th>
+                <th>Uploaded By</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for file in files %}
+            <tr>
+                <td><i class="fas fa-file-alt me-2"></i> {{ file.filename }}</td>
+                <td>{{ file.uploaded_by.username }}</td>
+                <td>
+                    <a href="{% url 'download_file' file.file_id %}" class="btn btn-sm btn-secondary">
+                        Decrypt and Download
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" class="text-center">No files in this folder.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+function copyInvite() {
+    var copyText = document.getElementById("inviteLink");
+    navigator.clipboard.writeText(copyText.value);
+    alert("Invite link copied to clipboard!");
+}
+</script>
+{% endblock %}
