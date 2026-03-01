@@ -3,9 +3,13 @@ from django.contrib.auth.models import AbstractUser
 
 # Custom User model extending AbstractUser
 class User(AbstractUser):
+    biometric_phrase = models.CharField(max_length=64)
+    biometric_secret = models.TextField()
     enroll_bins = models.TextField()
     helper_data = models.BinaryField()
     public_key_bytes = models.BinaryField ()
+    failed_login_attempts = models.PositiveIntegerField(default=0)
+    lockout_until = models.DateTimeField(null=True, blank=True)
     role = models.CharField(max_length=50, default="viewer")
 
     def __str__(self):
