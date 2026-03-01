@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -19,13 +20,37 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
+ENVIRONMENT = os.getenv('DJANGO_ENV', 'production').lower()
+IS_DEVELOPMENT = ENVIRONMENT in {'dev', 'development', 'local'}
+
+
+def env_to_bool(value: str | None, *, default: bool = False) -> bool:
+    if value is None:
+        return default
+    return value.strip().lower() in {'1', 'true', 't', 'yes', 'y', 'on'}
+
+
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-(0^5v#_d^jba%(*@rj5s_sqz1wdrd+7(wb6u1946qy5)$5&mm+'
+SECRET_KEY = os.getenv('SECRET_KEY')
+if not SECRET_KEY:
+    if IS_DEVELOPMENT:
+        SECRET_KEY = 'django-insecure-local-dev-key'
+    else:
+        raise ValueError('SECRET_KEY environment variable must be set in production.')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env_to_bool(os.getenv('DEBUG'), default=IS_DEVELOPMENT)
 
-ALLOWED_HOSTS = []
+if DEBUG:
+    ALLOWED_HOSTS = [
+        host.strip()
+        for host in os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+        if host.strip()
+    ]
+else:
+    ALLOWED_HOSTS = [
+        host.strip() for host in os.getenv('ALLOWED_HOSTS', '').split(',') if host.strip()
+    ]
 
 
 # Application definition
@@ -129,3 +154,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 SESSION_COOKIE_AGE = 600 
 # Resets the 10-minute timer every time the user clicks something
 SESSION_SAVE_EVERY_REQUEST = True
+
+CSRF_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
+SECURE_SSL_REDIRECT = env_to_bool(os.getenv('SECURE_SSL_REDIRECT'), default=not DEBUG)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
