@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
+from urllib.parse import parse_qs, unquote, urlparse
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -98,12 +99,89 @@ WSGI_APPLICATION = 'securefiles.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+
+def _database_from_url(database_url: str) -> dict[str, str | int]:
+    parsed = urlparse(database_url)
+    if parsed.scheme not in {'postgres', 'postgresql'}:
+        raise ValueError('DATABASE_URL must use a postgres:// or postgresql:// scheme.')
+
+    if not parsed.path or parsed.path == '/':
+        raise ValueError('DATABASE_URL must include a database name in the path component.')
+
+    options = {
+        key: values[0]
+        for key, values in parse_qs(parsed.query).items()
+        if values
     }
-}
+
+    return {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': unquote(parsed.path.lstrip('/')),
+        'USER': unquote(parsed.username or ''),
+        'PASSWORD': unquote(parsed.password or ''),
+        'HOST': parsed.hostname or 'localhost',
+        'PORT': parsed.port or 5432,
+        'OPTIONS': options,
+    }
+
+
+def _database_from_env_vars() -> dict[str, str | int] | None:
+    required_vars = ('DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST', 'DB_PORT')
+    if not any(os.getenv(var) for var in required_vars):
+        return None
+
+    missing_vars = [var for var in required_vars if not os.getenv(var)]
+    if missing_vars:
+        raise ValueError(
+            'Missing required database environment variables: ' + ', '.join(missing_vars)
+        )
+
+    return {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('DB_NAME', ''),
+        'USER': os.getenv('DB_USER', ''),
+        'PASSWORD': os.getenv('DB_PASSWORD', ''),
+        'HOST': os.getenv('DB_HOST', ''),
+        'PORT': int(os.getenv('DB_PORT', '5432')),
+    }
+
+
+def _database_settings() -> dict[str, dict[str, str | int | Path | dict[str, str]]]:
+    """
+    Production database configuration:
+    - Preferred: DATABASE_URL=postgres://USER:PASSWORD@HOST:PORT/NAME
+    - Equivalent explicit vars: DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT
+
+    Local fallback:
+    - SQLite is used only when no Postgres settings are provided and DJANGO_ENV is local/dev.
+
+    Pre-deploy migration check (against Postgres):
+    - python manage.py migrate --plan
+    - python manage.py migrate
+    """
+
+    database_url = os.getenv('DATABASE_URL')
+    if database_url:
+        return {'default': _database_from_url(database_url)}
+
+    database_from_env = _database_from_env_vars()
+    if database_from_env:
+        return {'default': database_from_env}
+
+    if IS_DEVELOPMENT:
+        return {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / 'db.sqlite3',
+            }
+        }
+
+    raise ValueError(
+        'Production requires PostgreSQL settings. Set DATABASE_URL or '
+        'DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT.'
+    )
+
+DATABASES = _database_settings()
 
 
 # Password validation
