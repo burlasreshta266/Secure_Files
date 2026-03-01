@@ -16,32 +16,10 @@ In your Render **Web Service → Environment** settings, add:
 
 For production safety, keep `DEBUG` unset or set `DEBUG=false`.
 
-Install dependencies:
+Render service command settings:
 
-```bash
-pip install -r requirements.txt
-```
+- **Build Command**: `pip install -r requirements.txt`
+- **Start Command**: `gunicorn securefiles.wsgi:application --bind 0.0.0.0:$PORT`
+- **Pre-Deploy Command**: `python manage.py migrate && python manage.py collectstatic --noinput`
 
-Run database migrations:
-
-```bash
-python manage.py migrate
-```
-
-Collect static assets for production:
-
-```bash
-python manage.py collectstatic --noinput
-```
-
-Start the application with Gunicorn:
-
-```bash
-gunicorn securefiles.wsgi:application --bind 0.0.0.0:${PORT:-8000}
-```
-
-Recommended production order:
-
-1. `python manage.py migrate`
-2. `python manage.py collectstatic --noinput`
-3. `gunicorn securefiles.wsgi:application --bind 0.0.0.0:${PORT:-8000}`
+These are codified in `render.yaml`. The `Procfile` still includes a matching `release` command for compatibility.

@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: secure-files
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn securefiles.wsgi:application --bind 0.0.0.0:$PORT
+    preDeployCommand: python manage.py migrate && python manage.py collectstatic --noinput
