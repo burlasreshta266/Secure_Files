@@ -14,6 +14,7 @@ def generate_authentication_key(S):
     hkdf = HKDF(
         algorithm = hashes.SHA256(), 
         length = 32,
+        salt = None,
         info = info)
     key_material = hkdf.derive(S)
     private_key = X25519PrivateKey.from_private_bytes(key_material)
@@ -31,6 +32,7 @@ def generate_encryption_material(S):
     hkdf = HKDF(
         algorithm = hashes.SHA256(), 
         length = 32,
+        salt = None,
         info = info)
     key_material = hkdf.derive(S)
     return key_material
