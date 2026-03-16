@@ -17,6 +17,14 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    load_dotenv = None
+
+if load_dotenv:
+    load_dotenv(BASE_DIR / '.env')
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -109,8 +117,24 @@ WSGI_APPLICATION = 'securefiles.wsgi.application'
 
 def _database_from_url(database_url: str) -> dict[str, str | int]:
     parsed = urlparse(database_url)
-    if parsed.scheme not in {'postgres', 'postgresql'}:
-        raise ValueError('DATABASE_URL must use a postgres:// or postgresql:// scheme.')
+    if parsed.scheme in {'postgres', 'postgresql'}:
+        engine = 'django.db.backends.postgresql'
+        default_port = 5432
+    elif parsed.scheme in {'mysql'}:
+        engine = 'django.db.backends.mysql'
+        default_port = 3306
+    elif parsed.scheme == 'sqlite':
+        db_name = unquote(parsed.path.lstrip('/'))
+        if not db_name:
+            raise ValueError('DATABASE_URL must include a SQLite file path.')
+        return {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': db_name,
+        }
+    else:
+        raise ValueError(
+            'DATABASE_URL must use postgres://, postgresql://, mysql://, or sqlite://.'
+        )
 
     if not parsed.path or parsed.path == '/':
         raise ValueError('DATABASE_URL must include a database name in the path component.')
@@ -122,18 +146,33 @@ def _database_from_url(database_url: str) -> dict[str, str | int]:
     }
 
     return {
-        'ENGINE': 'django.db.backends.postgresql',
+        'ENGINE': engine,
         'NAME': unquote(parsed.path.lstrip('/')),
         'USER': unquote(parsed.username or ''),
         'PASSWORD': unquote(parsed.password or ''),
         'HOST': parsed.hostname or 'localhost',
-        'PORT': parsed.port or 5432,
+        'PORT': parsed.port or default_port,
         'OPTIONS': options,
     }
 
 
 def _database_from_env_vars() -> dict[str, str | int] | None:
-    required_vars = ('DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST', 'DB_PORT')
+    sqlite_path = os.getenv('SQLITE_PATH')
+    if sqlite_path:
+        return {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': sqlite_path,
+        }
+
+    db_engine = os.getenv('DB_ENGINE', 'postgresql').strip().lower()
+
+    if db_engine == 'sqlite':
+        return {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': str(BASE_DIR / 'db.sqlite3'),
+        }
+
+    required_vars = ('DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST')
     if not any(os.getenv(var) for var in required_vars):
         return None
 
@@ -143,21 +182,33 @@ def _database_from_env_vars() -> dict[str, str | int] | None:
             'Missing required database environment variables: ' + ', '.join(missing_vars)
         )
 
+    if db_engine in {'postgres', 'postgresql'}:
+        engine = 'django.db.backends.postgresql'
+        port = int(os.getenv('DB_PORT', '5432'))
+    elif db_engine == 'mysql':
+        engine = 'django.db.backends.mysql'
+        port = int(os.getenv('DB_PORT', '3306'))
+    else:
+        raise ValueError("DB_ENGINE must be one of: postgresql, postgres, mysql, sqlite.")
+
     return {
-        'ENGINE': 'django.db.backends.postgresql',
+        'ENGINE': engine,
         'NAME': os.getenv('DB_NAME', ''),
         'USER': os.getenv('DB_USER', ''),
         'PASSWORD': os.getenv('DB_PASSWORD', ''),
         'HOST': os.getenv('DB_HOST', ''),
-        'PORT': int(os.getenv('DB_PORT', '5432')),
+        'PORT': port,
     }
 
 
 def _database_settings() -> dict[str, dict[str, str | int | Path | dict[str, str]]]:
     """
     Production database configuration:
-    - Preferred: DATABASE_URL=postgres://USER:PASSWORD@HOST:PORT/NAME
-    - Equivalent explicit vars: DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT
+    - Preferred: DATABASE_URL with postgres/mysql/sqlite
+    - Equivalent explicit vars:
+      DB_ENGINE + DB_NAME + DB_USER + DB_PASSWORD + DB_HOST + optional DB_PORT
+    - PythonAnywhere/simple hosting option:
+      SQLITE_PATH=/home/yourusername/securefiles/db.sqlite3
 
     Local fallback:
     - SQLite is used only when no Postgres settings are provided and DJANGO_ENV is local/dev.
@@ -184,8 +235,8 @@ def _database_settings() -> dict[str, dict[str, str | int | Path | dict[str, str
         }
 
     raise ValueError(
-        'Production requires PostgreSQL settings. Set DATABASE_URL or '
-        'DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT.'
+        'Production requires database settings. Set DATABASE_URL, SQLITE_PATH, or '
+        'DB_ENGINE with DB_NAME/DB_USER/DB_PASSWORD/DB_HOST.'
     )
 
 DATABASES = _database_settings()

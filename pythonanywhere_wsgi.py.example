@@ -1,0 +1,27 @@
+import os
+import sys
+from pathlib import Path
+
+project_home = '/home/yourusername/securefiles'
+venv_site_packages = '/home/yourusername/.virtualenvs/your-venv-name/lib/python3.11/site-packages'
+
+if project_home not in sys.path:
+    sys.path.insert(0, project_home)
+
+if venv_site_packages not in sys.path:
+    sys.path.insert(0, venv_site_packages)
+
+env_file = Path(project_home) / '.env'
+if env_file.exists():
+    try:
+        from dotenv import load_dotenv
+    except ImportError:
+        load_dotenv = None
+    if load_dotenv:
+        load_dotenv(env_file)
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'securefiles.settings')
+
+from django.core.wsgi import get_wsgi_application
+
+application = get_wsgi_application()
