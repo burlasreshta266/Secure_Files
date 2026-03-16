@@ -18,14 +18,13 @@ class AuthFlowTests(TestCase):
             cursor = ut + flight
         return ts
 
-    def _enroll(self, username='alice', password='StrongPass123!', phrase='myphrase2026'):
+    def _enroll(self, username='alice', phrase='myphrase2026'):
         ts1 = self._timestamps_for_phrase(phrase, start=1000)
         ts2 = self._timestamps_for_phrase(phrase, start=3000)
         return self.client.post(
             reverse('enroll'),
             {
                 'username': username,
-                'password': password,
                 'biometric_phrase': phrase,
                 'biometric_1': phrase,
                 'timestamps_1': json.dumps(ts1),
@@ -43,7 +42,6 @@ class AuthFlowTests(TestCase):
             reverse('enroll'),
             {
                 'username': 'bob',
-                'password': 'StrongPass123!',
                 'biometric_phrase': phrase,
                 'biometric_1': 'wrong',
                 'timestamps_1': json.dumps(ts1),
@@ -75,16 +73,17 @@ class AuthFlowTests(TestCase):
         self.assertIsNotNone(user.lockout_until)
         self.assertGreater(user.lockout_until, timezone.now())
 
-    def test_password_recovery_login_succeeds(self):
-        self._enroll(password='RecoveryPass456!')
+    def test_biometric_login_succeeds(self):
+        phrase = 'myphrase2026'
+        self._enroll(phrase=phrase)
+        ts = self._timestamps_for_phrase(phrase)
 
         response = self.client.post(
             reverse('login'),
             {
                 'username': 'alice',
-                'password': 'RecoveryPass456!',
-                'biometric': '',
-                'timestamps': '',
+                'biometric': phrase,
+                'timestamps': json.dumps(ts),
             },
         )
 
@@ -94,3 +93,4 @@ class AuthFlowTests(TestCase):
         user = User.objects.get(username='alice')
         self.assertEqual(user.failed_login_attempts, 0)
         self.assertIsNone(user.lockout_until)
+        self.assertFalse(user.has_usable_password())

@@ -163,15 +163,14 @@ def enroll(request):
         return render(request, 'mainapp/enroll.html', {'bio_word': DEFAULT_WORD})
 
     username = request.POST.get('username')
-    password = request.POST.get('password')
     biometric_phrase = request.POST.get('biometric_phrase') or DEFAULT_WORD
     biometric_1 = request.POST.get('biometric_1')
     tim_1 = request.POST.get('timestamps_1')
     biometric_2 = request.POST.get('biometric_2')
     tim_2 = request.POST.get('timestamps_2')
 
-    if not username or not password:
-        messages.error(request, 'Username and password are required')
+    if not username:
+        messages.error(request, 'Username is required')
         return redirect('enroll')
 
     if not tim_1 or not biometric_1 or not tim_2 or not biometric_2:
@@ -227,15 +226,16 @@ def enroll(request):
         messages.error(request, 'Username already exists')
         return redirect('enroll')
 
-    User.objects.create_user(
+    user = User.objects.create_user(
         username=username,
-        password=password,
         biometric_phrase=biometric_phrase,
         biometric_secret=biometric_phrase,
         helper_data=helper_data,
         public_key_bytes=public_key_bytes,
         enroll_bins=enroll_bins,
     )
+    user.set_unusable_password()
+    user.save(update_fields=['password'])
 
     messages.success(request, 'Enrollment successful! You can now log in.')
     return redirect('login')
@@ -254,15 +254,6 @@ def login(request):
     if _is_locked_out(user):
         messages.error(request, 'Too many failed attempts. Account temporarily locked.')
         return redirect('login')
-
-    password = request.POST.get('password')
-    if password and user.check_password(password):
-        _reset_failed_login(user)
-        auth_login(request, user)
-        request.session['bio_key'] = user.biometric_secret.encode('utf-8').hex()
-        request.session['login_threshold'] = 0
-        messages.success(request, 'Logged in using password recovery flow.')
-        return redirect('home')
 
     biometric = request.POST.get('biometric')
     tim = request.POST.get('timestamps')
@@ -379,8 +370,7 @@ def home(request):
     if health_percentage < 85:
         insights.append('Your typing rhythm has changed slightly. Ensure you are using a consistent keyboard.')
 
-    if not request.user.has_usable_password():
-        insights.append('Biometric-only mode is active. Your files are protected by your typing signature.')
+    insights.append('Biometric-only mode is active. Your files are protected by your typing signature.')
 
     return render(
         request,
